@@ -11,7 +11,7 @@ pygame.init()  # Инициализация всех импортированн�
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))  # Установка размера окна игры
-pygame.display.set_caption("Игра Тир")  # Название окна
+pygame.display.set_caption('Игра "Тир"')  # Название окна
 icon = pygame.image.load("img/pic.png")  # Загрузка иконки окна
 pygame.display.set_icon(icon)  # Установка иконки окна
 target_img = pygame.image.load("img/target.png")  # Загрузка изображения цели
@@ -26,15 +26,17 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 
 # Настройки игры и счета
-game_settings = {'difficulty': 1, 'game_duration': 60}  # Настройки сложности и продолжительности игры
-move_times = {1: 5, 2: 3, 3: 1}  # Задержка перед перемещением цели
-game_times = {1: 60, 2: 120, 3: 180, 4: 300, 5: 600}  # Время игры в секундах
+game_settings = {'difficulty': 1, 'game_duration': 10}  # Настройки сложности и продолжительности игры
+move_times = {1: 3, 2: 2, 3: 1}  # Задержка перед перемещением цели в секундах
+game_times = {1: 10, 2: 20, 3: 30, 4: 40, 5: 50, 6: 60}  # Время игры в секундах
 score = 0  # Игровой счет
 last_hit_message = None  # Сообщение о последнем попадании или промахе
 last_hit_message_time = None  # Время отображения последнего сообщения
 
 # Компонент для текстового ввода
 text_input = pygame_textinput.TextInputVisualizer()
+
+game_running = True  # Глобальная переменная для отслеживания состояния игры
 
 
 def load_leaderboard():
@@ -46,14 +48,14 @@ def load_leaderboard():
         return []
 
 
-def save_leaderboard(name, scores, difficulty):
-    # Сохранение данных игрока в рейтинг
+def save_leaderboard(name, scores, difficulty, game_duration):
     leaderboard = load_leaderboard()
     leaderboard.append({
         'name': name,
         'score': scores,
         'date': datetime.now().isoformat(),
-        'difficulty': difficulty  # Добавление сложности в данные
+        'difficulty': difficulty,
+        'duration': game_duration  # Сохраняем продолжительность игры
     })
     leaderboard.sort(key=lambda x: x['score'], reverse=True)
     with open('leaderboard.json', 'w') as file:
@@ -68,8 +70,10 @@ def draw_text(text, font, color, x, y):
 
 
 def show_start_screen():
-    options = ["1: Легкая - 5 сек", "2: Нормальная - 3 сек", "3: Сложная - 1 сек"]
-    time_options = ["1: 1 мин", "2: 2 мин", "3: 3 мин", "4: 5 мин", "5: 10 мин"]
+    options = ["Легкая - 3 сек смещение цели", "Нормальная - 2 сек смещение цели",
+               "Сложная - 1 сек смещение цели"]
+    time_options = ["10 сек игры", "20 сек игры", "30 сек игры", "40 сек игры",
+                    "50 сек игры", "60 сек игры"]
     selected_option = 0
     selected_time = 0
     choosing_difficulty = True
@@ -127,7 +131,8 @@ def show_start_screen():
 
 def start_game():
     # Начало игрового процесса, настройка и инициализация начальных параметров
-    global score, last_hit_message, last_hit_message_time
+    global score, last_hit_message, last_hit_message_time, game_running
+    game_running = True
     score = 0
     last_hit_message = None
     last_hit_message_time = None
@@ -138,7 +143,7 @@ def start_game():
 
     color = random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
 
-    while True:
+    while game_running:
         screen.fill(color)
         screen.blit(target_img, (target_x, target_y))
         current_time = datetime.now()
@@ -180,21 +185,36 @@ def start_game():
 
 
 def end_game():
-    # Завершение игры и ввод имени пользователя
+    global game_running
     screen.fill(BLACK)
     draw_text(f'Игра окончена! Ваш счет: {score}', BIG_FONT, WHITE, SCREEN_WIDTH / 2, 100)
     draw_text("Введите ваше имя:", FONT, WHITE, SCREEN_WIDTH / 2, 200)
     name = ""
+    exit_button = pygame.Rect(SCREEN_WIDTH / 2 - 150, 500, 120, 50)
+    restart_button = pygame.Rect(SCREEN_WIDTH / 2 + 50, 500, 220, 50)
+    pygame.draw.rect(screen, RED, exit_button)
+    pygame.draw.rect(screen, GREEN, restart_button)
+    draw_text("ВЫХОД", FONT, WHITE, exit_button.centerx, exit_button.centery)
+    draw_text("ПЕРЕЗАПУСТИТЬ", FONT, WHITE, restart_button.centerx, restart_button.centery)
+    pygame.display.update()
+
     while True:
         events = pygame.event.get()
         for event in events:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if exit_button.collidepoint(event.pos):
+                    pygame.quit()
+                    sys.exit()
+                if restart_button.collidepoint(event.pos):
+                    game_running = False
+                    show_start_screen()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN and name:
-                    save_leaderboard(name, score, game_settings['difficulty'])
-                    show_leaderboard(game_settings['difficulty'])
+                    save_leaderboard(name, score, game_settings['difficulty'], game_settings['game_duration'])
+                    show_leaderboard(game_settings['difficulty'], game_settings['game_duration'])
                 elif event.key == pygame.K_BACKSPACE:
                     name = name[:-1]
                 else:
@@ -204,19 +224,26 @@ def end_game():
         pygame.display.update()
 
 
-def show_leaderboard(current_difficulty):
-    # Отображение лидерборда по выбранной сложности
+def show_leaderboard(current_difficulty, current_duration):
     leaderboard = load_leaderboard()
-    filtered_leaderboard = [entry for entry in leaderboard if entry['difficulty'] == current_difficulty]
+    # Фильтруем по сложности и времени игры
+    filtered_leaderboard = [
+        entry for entry in leaderboard
+        if entry['difficulty'] == current_difficulty and entry['duration'] == current_duration
+    ]
     filtered_leaderboard.sort(key=lambda x: x['score'], reverse=True)
     filtered_leaderboard = filtered_leaderboard[:10]
 
     screen.fill(BLACK)
-    draw_text("ТОП 10 игроков на сложности: {}".format(current_difficulty), BIG_FONT, WHITE, SCREEN_WIDTH / 2, 50)
+    draw_text("ТОП 10 игроков на сложности: {} и времени: {} мин".format(current_difficulty, current_duration // 60),
+              FONT, WHITE, SCREEN_WIDTH / 2, 50)
     for idx, entry in enumerate(filtered_leaderboard):
         draw_text(f'{idx + 1}. {entry["name"]} - {entry["score"]}', FONT, WHITE, SCREEN_WIDTH / 2, 150 + idx * 30)
     pygame.display.update()
-    pygame.time.wait(5000)  # Показываем лидерборд в течение 5 секунд, затем выходим
+    pygame.time.wait(5000)  # Показываем лидерборд в течение 5 секунд
+    draw_text("Окно закроется через 5 секунд...", FONT, RED, SCREEN_WIDTH / 2, SCREEN_HEIGHT - 30)
+    pygame.display.update()
+    pygame.time.wait(5000)
     pygame.quit()
     sys.exit()
 
