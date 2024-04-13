@@ -136,8 +136,10 @@ def start_game():
     start_time = datetime.now()
     next_move_time = start_time + timedelta(seconds=game_settings['difficulty'])
 
+    color = random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)
+
     while True:
-        screen.fill((200, 200, 200))
+        screen.fill(color)
         screen.blit(target_img, (target_x, target_y))
         current_time = datetime.now()
 
