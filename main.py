@@ -136,6 +136,7 @@ def show_start_screen():
 def start_game():
     # Начало игрового процесса, настройка и инициализация начальных параметров
     global score, last_hit_message, last_hit_message_time, game_running
+    game_running = True
     score = 0
     target_x = random.randint(0, SCREEN_WIDTH - target_width)
     target_y = random.randint(0, SCREEN_HEIGHT - target_height)
@@ -205,6 +206,7 @@ def end_game():
     pygame.draw.rect(screen, GREEN, restart_button)
     draw_text("ВЫХОД", FONT, WHITE, exit_button.centerx, exit_button.centery)
     draw_text("ПЕРЕЗАПУСТИТЬ", FONT, WHITE, restart_button.centerx, restart_button.centery)
+    pygame.display.update()
 
     # Цикл проверки ввода имени, нажатия кнопок и индикации предыдущих результатов
     name_input_active = True
